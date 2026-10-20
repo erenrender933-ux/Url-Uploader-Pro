@@ -10,6 +10,7 @@ from config import DOWNLOAD_DIR, MAX_CONCURRENT_TASKS, MAX_FILE_SIZE
 from database import add_user, get_settings
 from helpers.downloader import download
 from helpers.ffmpeg import process_file
+from helpers.fsub import FSUB_TEXT, fsub_keyboard, get_missing_channels
 from helpers.progress import Progress, safe_edit
 from helpers.renamer import DEFAULT_FORMAT, build_name
 from helpers.thumbnail import prepare_thumb
@@ -21,6 +22,15 @@ task_limit = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 async def url_handler(client: Client, message: Message):
     user_id = message.from_user.id
     await add_user(user_id, message.from_user.first_name or "User")
+
+    # Force-subscribe check: user must join all channels first
+    try:
+        missing = await get_missing_channels(client, user_id)
+    except Exception:
+        return await message.reply_text("Bot config error. Please contact the owner.")
+
+    if missing:
+        return await message.reply_text(FSUB_TEXT, reply_markup=fsub_keyboard(missing))
 
     url = message.text.strip()
     settings = await get_settings(user_id)
@@ -39,7 +49,7 @@ async def url_handler(client: Client, message: Message):
 
             original_name = os.path.basename(source)
             if settings.get("renamer", True):
-                name = build_name(settings.get("format", DEFAULT_FORMAT), original_name)
+                name = await build_name(settings.get("format", DEFAULT_FORMAT), original_name)
             else:
                 name = original_name
 
@@ -49,7 +59,7 @@ async def url_handler(client: Client, message: Message):
             needs_processing = audio_track is not None or bool(title)
 
             if needs_processing:
-                await safe_edit(status, "**Processing file...**")
+                await safe_edit(status, "Processing file...")
                 await process_file(source, output, audio_track=audio_track, title=title)
             else:
                 os.replace(source, output)
@@ -57,7 +67,6 @@ async def url_handler(client: Client, message: Message):
             if os.path.getsize(output) > MAX_FILE_SIZE:
                 raise ValueError("File is larger than 4 GB.")
 
-            # Thumbnail: convert to Telegram format. If it fails, upload without it.
             thumb = None
             saved_thumb = settings.get("thumb")
             if saved_thumb and os.path.exists(saved_thumb):
