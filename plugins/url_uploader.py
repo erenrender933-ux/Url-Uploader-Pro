@@ -12,6 +12,7 @@ from helpers.downloader import download
 from helpers.ffmpeg import process_file
 from helpers.progress import Progress, safe_edit
 from helpers.renamer import DEFAULT_FORMAT, build_name
+from helpers.thumbnail import prepare_thumb
 
 task_limit = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
@@ -56,8 +57,15 @@ async def url_handler(client: Client, message: Message):
             if os.path.getsize(output) > MAX_FILE_SIZE:
                 raise ValueError("File is larger than 4 GB.")
 
-            thumb = settings.get("thumb")
-            thumb = thumb if thumb and os.path.exists(thumb) else None
+            # Thumbnail: convert to Telegram format. If it fails, upload without it.
+            thumb = None
+            saved_thumb = settings.get("thumb")
+            if saved_thumb and os.path.exists(saved_thumb):
+                thumb = os.path.join(task_dir, "thumb.jpg")
+                try:
+                    prepare_thumb(saved_thumb, thumb)
+                except Exception:
+                    thumb = None
 
             await message.reply_document(
                 document=output,
