@@ -36,12 +36,12 @@ def progress_text(action: str, current: int, total: int, start: float) -> str:
     eta = (total - current) / speed if speed and total else 0
     icon = "📥" if action == "Downloading" else "📤"
     return (
-        f"<b>{icon} {action}\n\n"
+        f"{icon} {action}\n\n"
         f"{bar} {percent:.1f}%\n\n"
         f"📦 Size: {human_size(current)} / {human_size(total)}\n"
         f"⚡ Speed: {human_size(speed)}/s\n"
         f"⏳ ETA: {format_time(eta)}\n"
-        f"⏱ Elapsed: {format_time(elapsed)}</b>"
+        f"⏱ Elapsed: {format_time(elapsed)}"
     )
 
 
