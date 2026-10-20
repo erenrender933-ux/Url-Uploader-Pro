@@ -5,6 +5,7 @@ from pyrogram.types import Message
 
 from config import THUMB_DIR
 from database import update_setting
+from helpers.thumbnail import prepare_thumb
 
 
 @Client.on_message(filters.command("setthumb") & filters.private & filters.reply)
@@ -14,11 +15,20 @@ async def set_thumb(client: Client, message: Message):
         return await message.reply_text("Reply to a photo with /setthumb.")
 
     os.makedirs(THUMB_DIR, exist_ok=True)
-    path = await client.download_media(
-        replied.photo.file_id,
-        file_name=os.path.join(THUMB_DIR, f"{message.from_user.id}.jpg"),
-    )
-    await update_setting(message.from_user.id, "thumb", path)
+    uid = message.from_user.id
+    raw_path = os.path.join(THUMB_DIR, f"{uid}_raw")
+    final_path = os.path.join(THUMB_DIR, f"{uid}.jpg")
+
+    await client.download_media(replied.photo.file_id, file_name=raw_path)
+    try:
+        prepare_thumb(raw_path, final_path)
+    except Exception as e:
+        return await message.reply_text(f"Could not process this image: {e}")
+    finally:
+        if os.path.exists(raw_path):
+            os.remove(raw_path)
+
+    await update_setting(uid, "thumb", final_path)
     await message.reply_text("Thumbnail saved.")
 
 
