@@ -26,6 +26,6 @@ MAX_CONCURRENT_TASKS = int(os.environ.get("MAX_CONCURRENT_TASKS", "2"))
 # The bot must be an admin in every channel listed here.
 # Leave the list empty to turn force-subscribe off.
 FSUB_CHANNELS = [
-    "@your_channel_one",
-    "@your_channel_two",
+    "-1002649539214",
+    "",
 ]
