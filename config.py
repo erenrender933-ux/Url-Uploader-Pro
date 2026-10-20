@@ -27,5 +27,5 @@ MAX_CONCURRENT_TASKS = int(os.environ.get("MAX_CONCURRENT_TASKS", "2"))
 # Leave the list empty to turn force-subscribe off.
 FSUB_CHANNELS = [
     "-1002649539214",
-    "",
+    "-1003766203099",
 ]
