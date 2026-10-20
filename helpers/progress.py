@@ -1,7 +1,11 @@
 import asyncio
+import logging
 import time
 
+from pyrogram.enums import ParseMode
 from pyrogram.errors import MessageNotModified
+
+log = logging.getLogger("progress")
 
 
 def human_size(n: float) -> str:
@@ -32,30 +36,30 @@ def progress_text(action: str, current: int, total: int, start: float) -> str:
     eta = (total - current) / speed if speed and total else 0
     icon = "📥" if action == "Downloading" else "📤"
     return (
-        f"<b>{icon} **{action}**\n\n"
+        f"{icon} {action}\n\n"
         f"{bar} {percent:.1f}%\n\n"
         f"📦 Size: {human_size(current)} / {human_size(total)}\n"
         f"⚡ Speed: {human_size(speed)}/s\n"
         f"⏳ ETA: {format_time(eta)}\n"
-        f"⏱ Elapsed: {format_time(elapsed)}</b>"
+        f"⏱ Elapsed: {format_time(elapsed)}"
     )
 
 
 async def safe_edit(msg, text: str):
-    """Edit a message but never crash if Telegram rejects the edit."""
+    """Edit a status message. Errors are logged, never crash the task."""
     try:
-        await msg.edit_text(text)
+        await msg.edit_text(text, parse_mode=ParseMode.DISABLED)
     except MessageNotModified:
         pass
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("Status edit failed: %s", e)
 
 
 class Progress:
     """
     Progress callback for downloads (aiohttp) and uploads (Pyrogram).
-    Pyrogram can call this from a worker thread, so every edit is
-    handed back to the bot's main event loop.
+    Pyrogram calls this from a worker thread, so each edit is scheduled
+    onto the bot's main event loop.
     """
 
     def __init__(self, msg, action: str):
@@ -63,7 +67,6 @@ class Progress:
         self.action = action
         self.start = time.time()
         self.last = 0.0
-        # Created inside an async handler, so a running loop always exists here
         self.loop = asyncio.get_running_loop()
 
     def __call__(self, current: int, total: int):
