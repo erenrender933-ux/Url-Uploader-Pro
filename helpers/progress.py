@@ -39,19 +39,25 @@ async def safe_edit(msg, text: str):
 
 
 class Progress:
-    """Callback used by Pyrogram and aiohttp. Updates are throttled to avoid flood waits."""
+    """
+    Progress callback for downloads (aiohttp) and uploads (Pyrogram).
+    Pyrogram can call this from a worker thread, so every edit is
+    handed back to the bot's main event loop.
+    """
 
     def __init__(self, msg, action: str):
         self.msg = msg
         self.action = action
         self.start = time.time()
         self.last = 0.0
+        # Created inside an async handler, so a running loop always exists here
+        self.loop = asyncio.get_running_loop()
 
     def __call__(self, current: int, total: int):
         now = time.time()
         if current != total and now - self.last < 3:
             return
         self.last = now
-        asyncio.ensure_future(
-            safe_edit(self.msg, progress_text(self.action, current, total, self.start))
-      )
+
+        text = progress_text(self.action, current, total, self.start)
+        asyncio.run_coroutine_threadsafe(safe_edit(self.msg, text), self.loop)
