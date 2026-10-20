@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 from urllib.parse import unquote
 
 import aiohttp
@@ -26,20 +27,22 @@ async def _download_gdrive(url: str, status_msg) -> str:
 
     await safe_edit(status_msg, "**Downloading from Google Drive...**")
 
-    # A trailing separator tells gdown to keep the original file name
-    output = os.path.join(DOWNLOAD_DIR, "")
-    path = await asyncio.to_thread(
-        gdown.download, id=file_id, output=output, quiet=True
-    )
-    if not path:
+    # No output argument: gdown saves with the real file name from Google Drive,
+    # in the current folder. We move it into DOWNLOAD_DIR afterwards.
+    saved = await asyncio.to_thread(gdown.download, id=file_id, quiet=True)
+    if not saved or not os.path.exists(saved):
         raise ValueError(
-            "Google Drive download failed. Make sure the file is shared as 'Anyone with the link'."
+            "Google Drive download failed. Check that the file is shared as "
+            "'Anyone with the link', and that the daily download quota is not over."
         )
 
-    if os.path.getsize(path) > MAX_FILE_SIZE:
-        os.remove(path)
+    dst = os.path.join(DOWNLOAD_DIR, os.path.basename(saved))
+    shutil.move(saved, dst)
+
+    if os.path.getsize(dst) > MAX_FILE_SIZE:
+        os.remove(dst)
         raise ValueError("File is larger than 4 GB.")
-    return path
+    return dst
 
 
 async def _download_direct(url: str, status_msg) -> str:
