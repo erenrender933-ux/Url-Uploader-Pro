@@ -20,3 +20,12 @@ MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024
 
 # How many files can be downloaded/processed/uploaded at the same time
 MAX_CONCURRENT_TASKS = int(os.environ.get("MAX_CONCURRENT_TASKS", "2"))
+
+# Force-subscribe channels.
+# Use "@username" for public channels, or the numeric ID (-100...) for private ones.
+# The bot must be an admin in every channel listed here.
+# Leave the list empty to turn force-subscribe off.
+FSUB_CHANNELS = [
+    "@your_channel_one",
+    "@your_channel_two",
+]
