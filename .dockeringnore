@@ -1,0 +1,7 @@
+.env
+.git
+downloads/
+thumbs/
+venv/
+__pycache__/
+*.session
