@@ -12,6 +12,17 @@ def human_size(n: float) -> str:
     return f"{n:.2f} TB"
 
 
+def format_time(seconds: float) -> str:
+    seconds = int(seconds)
+    hours, rem = divmod(seconds, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
 def progress_text(action: str, current: int, total: int, start: float) -> str:
     elapsed = max(time.time() - start, 0.1)
     speed = current / elapsed
@@ -19,12 +30,14 @@ def progress_text(action: str, current: int, total: int, start: float) -> str:
     filled = min(int(percent // 10), 10)
     bar = "■" * filled + "□" * (10 - filled)
     eta = (total - current) / speed if speed and total else 0
+    icon = "📥" if action == "Downloading" else "📤"
     return (
-        f"**{action}**\n"
-        f"[{bar}] {percent:.1f}%\n"
-        f"Done: {human_size(current)} / {human_size(total)}\n"
-        f"Speed: {human_size(speed)}/s\n"
-        f"ETA: {int(eta)}s"
+        f"<b>{icon} **{action}**\n\n"
+        f"{bar} {percent:.1f}%\n\n"
+        f"📦 Size: {human_size(current)} / {human_size(total)}\n"
+        f"⚡ Speed: {human_size(speed)}/s\n"
+        f"⏳ ETA: {format_time(eta)}\n"
+        f"⏱ Elapsed: {format_time(elapsed)}</b>"
     )
 
 
